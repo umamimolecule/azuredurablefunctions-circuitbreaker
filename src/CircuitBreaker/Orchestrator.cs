@@ -8,17 +8,22 @@ namespace CircuitBreaker
     {
         public const string FunctionName = "Orchestrator";
 
+        public class Input
+        {
+            public string CircuitBreakerId { get; set; }
+        }
+
         [FunctionName(FunctionName)]
         public async Task Run([OrchestrationTrigger]IDurableOrchestrationContext context)
         {
-            SubOrchestrator.Input subOrchestratorInput = new SubOrchestrator.Input()
+            var input = context.GetInput<Input>();
+
+            var circuitBreakerOptions = new CircuitBreakerOptions()
             {
-                ActivityFunctionName = ThrottlingActivity.FunctionName,
-                ActivityFunctionInput = null,
-                MaximumNumberOfRetries = 3,
+                CircuitBreakerId = input.CircuitBreakerId,
             };
 
-            await context.CallSubOrchestratorAsync(SubOrchestrator.FunctionName, subOrchestratorInput);
+            await context.ExecuteActivityWithCircuitBreaker(ThrottlingActivity.FunctionName, circuitBreakerOptions, null);
         }
     }
 }
